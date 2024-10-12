@@ -11,14 +11,17 @@ const selectedAlgorithmDisplay = document.getElementById("selected-algorithm");
 const selectedMazeSizeDisplay = document.getElementById("selected-maze-size");
 const currentTickSpeedDisplay = document.getElementById("current-tick-speed");
 
-let rows = 30;
-let cols = 30;
+let rows = 20;
+let cols = 20;
 let cellSize = canvas.width / cols;
 let maze = [];
 let visited = [];
 let parent = [];
+let memos = [];
 
 let canvasMouseIsDown = false;
 let mazeDrawWallMode = false;
 let pathFinding = false;
 let pathFindStartTime = null;
+
+let showCoordinateMode = false;

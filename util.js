@@ -68,3 +68,42 @@ function lineOfSight(sx, sy, ex, ey) {
   }
   return true;
 }
+
+function pickRandomElementWithWeight(arr) {
+  const weightSum = arr.reduce((acc, cur) => acc + cur.weight, 0);
+  if (weightSum === 0) return arr[Math.floor(Math.random() * arr.length)];
+  const randomValue = Math.random() * weightSum;
+  let sum = 0;
+  for (let i = 0; i < arr.length; i++) {
+    sum += arr[i].weight;
+    if (randomValue < sum) return arr[i];
+  }
+
+  return arr[arr.length - 1];
+}
+
+function pickRandomWithWeights(arr, weights) {
+  if (arr.length !== weights.length) throw new Error("arr and weights must have the same length");
+  const weightSum = weights.reduce((acc, cur) => acc + cur, 0);
+  if (weightSum === 0) return arr[Math.floor(Math.random() * arr.length)];
+  const randomValue = Math.random() * weightSum;
+  let sum = 0;
+  for (let i = 0; i < arr.length; i++) {
+    sum += weights[i];
+    if (randomValue < sum) return arr[i];
+  }
+
+  return arr[arr.length - 1];
+}
+
+function pickRandom(raw) {
+  let arr = raw;
+  if (raw instanceof Set) {
+    arr = Array.from(raw);
+  }
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+function distance([x0, y0], [x1, y1]) {
+  return Math.abs(x1 - x0) + Math.abs(y1 - y0);
+}

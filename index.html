@@ -87,6 +87,8 @@
               <option value="bidirectionalSearch">양방향 탐색 (Bidirectional Search)</option>
               <option value="thetaStar">쎄타* 알고리즘 (Theta*)</option>
               <option value="bidirectionalThetaStar">양방향 쎄타* 알고리즘 (Bidirectional Theta*)</option>
+              <option value="virusSearch">#바이러스 탐색</option>
+              <option value="test">테스트</option>
             </select>
           </div>
           <div class="setting">
@@ -106,7 +108,7 @@
         </div>
         <div id="settings-display">
           <p>선택된 알고리즘: <span id="selected-algorithm">A* 알고리즘</span></p>
-          <p>미로 크기: <span id="selected-maze-size">30x30</span></p>
+          <p>미로 크기: <span id="selected-maze-size">20x20</span></p>
           <p>현재 틱 속도: <span id="current-tick-speed">0ms</span></p>
           <p>소요시간: -초</p>
         </div>
@@ -117,6 +119,7 @@
     <script src="./util.js"></script>
     <script src="./mazemaker.js"></script>
     <script src="./algorithms.js"></script>
+    <script src="./test_algorithms.js"></script>
     <script>
       // 길찾기 알고리즘 시각화 (A*, BFS, DFS 구현)
       async function visualizePathfinding(algorithm) {
@@ -138,6 +141,8 @@
         else if (algorithm === "bidirectionalSearch") await bidirectionalSearch();
         else if (algorithm === "thetaStar") await thetaStar();
         else if (algorithm === "bidirectionalThetaStar") await bidirectionalThetaStar();
+        else if (algorithm === "virusSearch") await virusSearch();
+        else if (algorithm === "test") await test();
 
         pathFinding = false;
         pathFindStartTime = null;
@@ -156,7 +161,7 @@
         rows = parseInt(mazeSizeInput.value);
         cols = rows;
         cellSize = canvas.width / cols;
-        generateMaze();
+        generateEmptyMaze();
         drawMaze();
         selectedMazeSizeDisplay.textContent = `${rows}x${cols}`;
       });
@@ -192,8 +197,12 @@
         const y = Math.floor(e.offsetY / cellSize);
         if (maze[y][x] === 0) {
           mazeDrawWallMode = true;
+          maze[y][x] = -1;
+          drawMaze();
         } else if (maze[y][x] === -1) {
           mazeDrawWallMode = false;
+          maze[y][x] = 0;
+          drawMaze();
         }
       });
 
@@ -216,6 +225,12 @@
         }
       });
 
+      window.addEventListener("keyup", (e) => {
+        if (e.key === "c") {
+          showCoordinateMode = !showCoordinateMode;
+        }
+      });
+
       // 초기 미로 생성 및 그리기
       generateEmptyMaze();
 
@@ -223,6 +238,7 @@
         drawMaze();
         requestAnimationFrame(canvasDrawer);
       };
+      canvasDrawer();
     </script>
   </body>
 </html>

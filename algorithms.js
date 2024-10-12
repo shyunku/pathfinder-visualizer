@@ -612,3 +612,166 @@ async function bidirectionalThetaStar() {
     console.log("경로를 찾을 수 없습니다.");
   }
 }
+
+async function virusSearch() {
+  const pathCandidateCells = [];
+  for (let row = 0; row < maze.length; row++) {
+    for (let col = 0; col < maze[row].length; col++) {
+      if (maze[row][col] === 0) {
+        const weight = 1 / Math.max(Math.abs(rows * col - cols * row) / (rows ** 2 + cols ** 2), 0.01);
+        pathCandidateCells.push({
+          row,
+          col,
+          weight,
+        });
+      }
+    }
+  }
+
+  const totalCells = rows * cols;
+  const wallCells = totalCells - pathCandidateCells.length;
+  const pickNum = Math.floor(wallCells / 24);
+  const cellpaths = {};
+
+  function addCellPath(row, col) {
+    const id = `${row},${col}`;
+    const cellPath = {
+      id,
+      row,
+      col,
+      meetedPathIds: new Set(),
+    };
+    cellpaths[id] = cellPath;
+    return cellPath;
+  }
+
+  function checkAllConnected() {
+    const cellPathIds = Object.keys(cellpaths);
+    if (cellPathIds.length === 0) return true;
+
+    const startPath = cellpaths[cellPathIds[0]];
+    const stack = [startPath];
+    const visited = new Set([startPath.id]);
+
+    while (stack.length > 0) {
+      const curPath = stack.pop();
+      for (const pathId of curPath.meetedPathIds) {
+        if (!visited.has(pathId)) {
+          visited.add(pathId);
+          stack.push(cellpaths[pathId]);
+        }
+      }
+    }
+
+    return visited.size === cellPathIds.length;
+  }
+
+  for (let i = 0; i < pickNum; i++) {
+    const pickedCell = pickRandomElementWithWeight(pathCandidateCells);
+    const index = pathCandidateCells.findIndex((cell) => cell.row === pickedCell.row && cell.col === pickedCell.col);
+    pathCandidateCells.splice(index, 1);
+
+    const { row, col } = pickedCell;
+    addCellPath(row, col);
+  }
+
+  const startPath = addCellPath(0, 0);
+  const endPath = addCellPath(rows - 1, cols - 1);
+
+  const visitedCell = Array.from({ length: rows }, () => Array(cols).fill(null));
+  const parents = Array.from({ length: rows }, () => Array.from({ length: cols }, () => new Set()));
+
+  for (const cellpath of Object.values(cellpaths)) {
+    visitedCell[cellpath.row][cellpath.col] = cellpath;
+  }
+
+  const cellList = Object.values(cellpaths).map(({ row, col }) => [row, col]);
+  while (cellList.length > 0) {
+    const cell = cellList.shift();
+    const [row, col] = cell;
+
+    const cellPath = visitedCell[row][col];
+    if (!cellPath) {
+      console.error(`cellpath isn't allocated at ${row}, ${col}`);
+      return;
+    }
+    const pathId = cellPath.id;
+
+    drawPath(row, col);
+    await new Promise((resolve) => setTimeout(resolve, parseInt(tickSpeedInput.value)));
+
+    let meetedPathId = null;
+    for (const [dRow, dCol] of directions) {
+      const newRow = row + dRow;
+      const newCol = col + dCol;
+      if (newRow >= 0 && newRow < rows && newCol >= 0 && newCol < cols && maze[newRow][newCol] !== -1) {
+        if (!visitedCell[newRow][newCol]) {
+          cellList.push([newRow, newCol]);
+          visitedCell[newRow][newCol] = cellPath;
+          parents[newRow][newCol].add(`${row},${col}`);
+          // memo[newRow][newCol] = `${pathId}\n(${Array.from(parents[newRow][newCol]).join(", ")})`;
+        } else if (
+          visitedCell[newRow][newCol] !== cellPath &&
+          !cellPath.meetedPathIds.has(visitedCell[newRow][newCol].id)
+        ) {
+          meetedPathId = visitedCell[newRow][newCol].id;
+
+          // console.log(`meet (${row}, ${col}) -> (${newRow}, ${newCol}), ${meetedPathId}`);
+          cellPath.meetedPathIds.add(meetedPathId);
+          parents[newRow][newCol].add(`${row},${col}`);
+          visitedCell[newRow][newCol].meetedPathIds.add(pathId);
+
+          drawPath(newRow, newCol);
+          await new Promise((resolve) => setTimeout(resolve, parseInt(tickSpeedInput.value)));
+        }
+      }
+    }
+
+    if (meetedPathId && checkAllConnected()) {
+      console.log(`Found early exit at ${row}, ${col}`);
+      break;
+    }
+  }
+
+  if (!checkAllConnected()) {
+    console.log("No path found");
+    return;
+  }
+
+  const bidirectionalParents = Array.from({ length: rows }, () => Array.from({ length: cols }, () => new Set()));
+
+  for (let row = 0; row < rows; row++) {
+    for (let col = 0; col < cols; col++) {
+      const pSet = parents[row][col];
+      if (pSet.size === 0) continue;
+      for (const p of pSet) {
+        const [parentRow, parentCol] = p.split(",").map(Number);
+        bidirectionalParents[row][col].add(`${parentRow},${parentCol}`);
+        bidirectionalParents[parentRow][parentCol].add(`${row},${col}`);
+      }
+    }
+  }
+
+  const cellQueue = [[rows - 1, cols - 1]];
+  const visited2 = Array.from({ length: rows }, () => Array(cols).fill(false));
+  const parent2 = Array.from({ length: rows }, () => Array(cols).fill(null));
+
+  while (cellQueue.length > 0) {
+    const [row, col] = cellQueue.shift();
+    if (visited2[row][col]) continue;
+    visited2[row][col] = true;
+    for (const p of bidirectionalParents[row][col]) {
+      const [parentRow, parentCol] = p.split(",").map(Number);
+      if (visited2[parentRow][parentCol]) continue;
+      parent2[parentRow][parentCol] = [row, col];
+      cellQueue.push([parentRow, parentCol]);
+    }
+  }
+
+  let [row, col] = [0, 0];
+  while (parent2[row][col]) {
+    drawBacktracePath(row, col);
+    await new Promise((resolve) => setTimeout(resolve, parseInt(tickSpeedInput.value)));
+    [row, col] = parent2[row][col];
+  }
+}
