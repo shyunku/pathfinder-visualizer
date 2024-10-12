@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>길찾기 알고리즘 시각화</title>
+    <style>
+      body,
+      html {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background-color: black;
+      }
+      #container {
+        display: flex;
+        width: 100%;
+        height: 100%;
+      }
+      #canvas-container {
+        flex: 1;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+      #control-panel {
+        width: 480px;
+        background-color: #333;
+        color: white;
+        padding: 20px;
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+        font-size: 14px;
+      }
+      #settings-section {
+        margin-bottom: 20px;
+
+        .setting {
+          display: flex;
+
+          &:not(:last-child) {
+            margin-bottom: 10px;
+          }
+
+          &.vertical {
+            flex-direction: column;
+
+            button {
+              margin-top: 10px;
+            }
+          }
+
+          .selector {
+            margin-left: 10px;
+          }
+        }
+      }
+      button,
+      select,
+      input {
+        cursor: pointer;
+        padding: 5px;
+        background-color: #555;
+        color: white;
+        border: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="container">
+      <div id="canvas-container">
+        <canvas id="maze-canvas" width="1080" height="1080"></canvas>
+      </div>
+      <div id="control-panel">
+        <div id="settings-section">
+          <div class="setting">
+            <label for="algorithm">길찾기 알고리즘 선택:</label>
+            <select id="algorithm" class="selector">
+              <option value="astar">A* 알고리즘</option>
+              <option value="bfs">너비 우선 탐색 (BFS)</option>
+              <option value="dfs">깊이 우선 탐색 (DFS)</option>
+              <option value="dijkstra">다익스트라 알고리즘</option>
+              <option value="greedyBestFirstSearch">탐욕 알고리즘 (Greedy BFS)</option>
+              <option value="bidirectionalSearch">양방향 탐색 (Bidirectional Search)</option>
+              <option value="thetaStar">쎄타* 알고리즘 (Theta*)</option>
+              <option value="bidirectionalThetaStar">양방향 쎄타* 알고리즘 (Bidirectional Theta*)</option>
+            </select>
+          </div>
+          <div class="setting">
+            <label for="maze-size">미로 크기 설정:</label>
+            <input class="selector" type="number" id="maze-size" value="20" min="5" max="100" />
+          </div>
+          <div class="setting">
+            <label for="tick-speed">틱 속도(ms):</label>
+            <input class="selector" type="number" id="tick-speed" value="0" step="1" />
+          </div>
+          <div class="setting vertical">
+            <button id="generate-empty-maze-button">빈 미로 그리기</button>
+            <button id="generate-maze-button">랜덤 미로 그리기</button>
+            <button id="start-button">길찾기 시작</button>
+            <button id="reset-button">전체 초기화</button>
+          </div>
+        </div>
+        <div id="settings-display">
+          <p>선택된 알고리즘: <span id="selected-algorithm">A* 알고리즘</span></p>
+          <p>미로 크기: <span id="selected-maze-size">30x30</span></p>
+          <p>현재 틱 속도: <span id="current-tick-speed">0ms</span></p>
+          <p>소요시간: -초</p>
+        </div>
+      </div>
+    </div>
+
+    <script src="./variable.js"></script>
+    <script src="./util.js"></script>
+    <script src="./mazemaker.js"></script>
+    <script src="./algorithms.js"></script>
+    <script>
+      // 길찾기 알고리즘 시각화 (A*, BFS, DFS 구현)
+      async function visualizePathfinding(algorithm) {
+        clearPaths();
+
+        pathFinding = true;
+        pathFindStartTime = Date.now();
+
+        let timeUpdater = setInterval(() => {
+          const timeElapsed = (Date.now() - pathFindStartTime) / 1000;
+          document.getElementById("settings-display").children[3].textContent = `소요시간: ${timeElapsed.toFixed(2)}초`;
+        }, 15);
+
+        if (algorithm === "astar") await aStar();
+        else if (algorithm === "bfs") await bfs();
+        else if (algorithm === "dfs") await dfs();
+        else if (algorithm === "dijkstra") await dijkstra();
+        else if (algorithm === "greedyBestFirstSearch") await greedyBestFirstSearch();
+        else if (algorithm === "bidirectionalSearch") await bidirectionalSearch();
+        else if (algorithm === "thetaStar") await thetaStar();
+        else if (algorithm === "bidirectionalThetaStar") await bidirectionalThetaStar();
+
+        pathFinding = false;
+        pathFindStartTime = null;
+        clearInterval(timeUpdater);
+      }
+
+      startButton.addEventListener("click", () => {
+        console.log("길찾기 시작 버튼 클릭됨");
+        const algorithm = algorithmSelect.value;
+        selectedAlgorithmDisplay.textContent = algorithmSelect.options[algorithmSelect.selectedIndex].text;
+        visualizePathfinding(algorithm);
+      });
+
+      resetButton.addEventListener("click", () => {
+        console.log("전체 초기화 버튼 클릭됨");
+        rows = parseInt(mazeSizeInput.value);
+        cols = rows;
+        cellSize = canvas.width / cols;
+        generateMaze();
+        drawMaze();
+        selectedMazeSizeDisplay.textContent = `${rows}x${cols}`;
+      });
+
+      generateMazeButton.addEventListener("click", () => {
+        console.log("미로 그리기 버튼 클릭됨");
+        rows = parseInt(mazeSizeInput.value);
+        cols = rows;
+        cellSize = canvas.width / cols;
+        generateMaze();
+        drawMaze();
+        selectedMazeSizeDisplay.textContent = `${rows}x${cols}`;
+      });
+
+      generateEmptyMazeButton.addEventListener("click", () => {
+        console.log("미로 비우기 버튼 클릭됨");
+        rows = parseInt(mazeSizeInput.value);
+        cols = rows;
+        cellSize = canvas.width / cols;
+        generateEmptyMaze();
+        drawMaze();
+        selectedMazeSizeDisplay.textContent = `${rows}x${cols}`;
+      });
+
+      tickSpeedInput.addEventListener("input", () => {
+        currentTickSpeedDisplay.textContent = `${tickSpeedInput.value}ms`;
+      });
+
+      // canvas 그리기 기능
+      canvas.addEventListener("mousedown", (e) => {
+        canvasMouseIsDown = true;
+        const x = Math.floor(e.offsetX / cellSize);
+        const y = Math.floor(e.offsetY / cellSize);
+        if (maze[y][x] === 0) {
+          mazeDrawWallMode = true;
+        } else if (maze[y][x] === -1) {
+          mazeDrawWallMode = false;
+        }
+      });
+
+      canvas.addEventListener("mouseup", (e) => {
+        canvasMouseIsDown = false;
+      });
+
+      canvas.addEventListener("mousemove", (e) => {
+        if (canvasMouseIsDown) {
+          const rect = canvas.getBoundingClientRect();
+          const x = Math.floor((e.clientX - rect.left) / cellSize);
+          const y = Math.floor((e.clientY - rect.top) / cellSize);
+          if (maze[y][x] === 0 && mazeDrawWallMode) {
+            maze[y][x] = -1;
+            drawMaze();
+          } else if (maze[y][x] === -1 && !mazeDrawWallMode) {
+            maze[y][x] = 0;
+            drawMaze();
+          }
+        }
+      });
+
+      // 초기 미로 생성 및 그리기
+      generateEmptyMaze();
+
+      const canvasDrawer = () => {
+        drawMaze();
+        requestAnimationFrame(canvasDrawer);
+      };
+    </script>
+  </body>
+</html>
